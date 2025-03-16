@@ -1,0 +1,26 @@
+# Configure the upstream DNS server for resolving external queries
+server={{ dnsmasq_dns_server }}
+
+# Do not forward DNS requests for the local domain; resolve them locally
+local=/{{ dnsmasq_local_domain }}/
+
+# Define additional hostnames for local devices from a custom hosts file
+addn-hosts={{ dnsmasq_hosts_file }}
+
+# Restrict dnsmasq to listen only on the specified network interface and IP addresses
+interface={{ dnsmasq_interface }}
+listen-address={% for ip in dnsmasq_listen_addresses %}{{ ip }}{% if not loop.last %},{% endif %}{% endfor %}
+
+# Enable DNS caching and set the maximum number of cached entries
+cache-size={{ dnsmasq_cache_size }}
+
+# Prefer IPv4 responses over IPv6 (filters certain unnecessary AAAA queries)
+filterwin2k
+
+# Dynamically configure SRV records for local services
+{% for record in dnsmasq_srv_records %}
+srv-host={{ record.service }},{{ record.target }},{{ record.port }}
+{% endfor %}
+
+# Block reverse lookups for private IP ranges to avoid acting as an open resolver
+bogus-priv

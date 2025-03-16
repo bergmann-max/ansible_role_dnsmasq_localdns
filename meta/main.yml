@@ -1,9 +1,16 @@
 ---
-# roles/ansible_role_template/meta/main.yml
+# roles/ansible_role_dnsmasq_localdns/meta/main.yml
 
 galaxy_info:
   author: Max Bergmann
-  description: An Ansible role template
+  description: Configures dnsmasq as local DNS resolver with custom host entries and SRV records
   license: MIT
   min_ansible_version: "2.9"
+  galaxy_tags:
+    - dnsmasq
+    - dns
+    - resolver
+    - localdns
+    - caching
+    - networking
 dependencies: []

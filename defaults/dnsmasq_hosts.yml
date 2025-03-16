@@ -1,0 +1,10 @@
+---
+# roles/ansible_role_dnsmasq_localdns/defaults/dnsmasq_hosts.yml
+
+dnsmasq_localdns_hosts:
+  - "10.0.0.10 webserver.myhome.local frontend.myhome.local"
+  - "10.0.0.11 dbserver.myhome.local"
+  - "10.0.0.12 cache.myhome.local"
+  - "10.0.0.13 backup.myhome.local"
+  - "10.0.0.14 monitoring.myhome.local"
+  - "10.0.0.15 nas.myhome.local"
