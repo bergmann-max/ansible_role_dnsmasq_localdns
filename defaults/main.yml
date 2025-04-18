@@ -19,13 +19,21 @@ dnsmasq_listen_addresses:
 dnsmasq_cache_size: 1000
 
 # Local domain used for name resolution
-dnsmasq_local_domain: "myhome.local"
+dnsmasq_local_domain: "example.com"
 
 # SRV records definition for local services
 dnsmasq_srv_records:
-  - service: "_http._tcp.nas.myhome.local"   # HTTP service on NAS
-    target: "nas.myhome.local"               # Target hostname
-    port: 5001                               # Service port
-  - service: "_ldap._tcp.nas.myhome.local"   # LDAP service on NAS
-    target: "nas.myhome.local"
-    port: 389
+  - service: "_ipp._tcp.printer.example.com"   # IPP service for network printing
+    target: "printer.example.com"              # Target hostname
+    port: 631                                  # Standard IPP port
+  - service: "_lpd._tcp.printer.example.com"   # LPD service for legacy printing
+    target: "printer.example.com"
+    port: 515
+
+# Static DNS host entries for local name resolution
+# Each entry defines one or more hostnames assigned to a specific IP address
+dnsmasq_localdns_hosts:
+  - "10.0.0.10 webserver.example.com frontend.example.com"
+  - "10.0.0.11 dbserver.example.com"
+  - "10.0.0.12 monitoring.example.com"
+

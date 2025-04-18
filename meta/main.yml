@@ -4,13 +4,11 @@
 galaxy_info:
   author: Max Bergmann
   description: Configures dnsmasq as local DNS resolver with custom host entries and SRV records
-  license: MIT
+  license: Unlicens
   min_ansible_version: "2.9"
   galaxy_tags:
     - dnsmasq
     - dns
-    - resolver
     - localdns
-    - caching
     - networking
 dependencies: []

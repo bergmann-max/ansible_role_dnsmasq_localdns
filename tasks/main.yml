@@ -1,55 +1,106 @@
 ---
-# roles/ansible_role_dnsmasq_localdns/tasks/main.yml
+# roles/dnsmasq/tasks/main.yml
 
-- name: Load dnsmasq hosts
-  ansible.builtin.include_vars:
-    file: dnsmasq_hosts.yml
+- name: Disable systemd-resolved and configure resolv.conf
+  tags: resolvconf
+  block:
 
-- name: Ensure DNSStubListener is set to "no" in resolved.conf
-  ansible.builtin.lineinfile:
-    path: /etc/systemd/resolved.conf
-    regexp: '^DNSStubListener='
-    line: 'DNSStubListener=no'
-    owner: root
-    group: root
-    mode: 'u=rw,g=r,o=r'
-    create: true
-    backup: true
-  notify: Restart systemd-resolved
+    - name: Ensure DNSStubListener is set to "no" in resolved.conf
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: '^DNSStubListener='
+        line: 'DNSStubListener=no'
+        owner: root
+        group: root
+        mode: 'u=rw,g=r,o=r'
+        create: true
+        backup: true
+      notify: Restart systemd-resolved
 
-- name: Install dnsmasq
-  ansible.builtin.apt:
-    name: dnsmasq
-    state: present
+    - name: Disable systemd-resolved service
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        enabled: false
+        state: stopped
 
-- name: Ensure directory exists
-  ansible.builtin.file:
-    path: /etc/dnsmasq.d
-    state: directory
-    owner: root
-    group: root
-    mode: 'u=rwx,g=rx,o=rx'
+    - name: Check if /etc/resolv.conf is a symlink
+      ansible.builtin.stat:
+        path: /etc/resolv.conf
+      register: resolv_stat
 
-- name: Template dnsmasq.conf.j2 to /etc/dnsmasq.d/dnsmasq.conf
-  ansible.builtin.template:
-    src: dnsmasq.conf.j2
-    dest: /etc/dnsmasq.d/dnsmasq.conf
-    owner: root
-    group: root
-    mode: 'u=r,g=r,o=r'
-  notify: Restart dnsmasq
+    - name: Remove /etc/resolv.conf if it's a symlink
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        state: absent
+      when: resolv_stat.stat.islnk
 
-- name: Template hosts.dnsmasq.j2 to /etc/hosts.dnsmasq
-  ansible.builtin.template:
-    src: hosts.dnsmasq.j2
-    dest: /etc/hosts.dnsmasq
-    owner: root
-    group: root
-    mode: 'u=r,g=r,o=r'
-  notify: Restart dnsmasq
+    - name: Create static resolv.conf pointing to dnsmasq
+      ansible.builtin.copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver 127.0.0.1
+          nameserver 1.1.1.1
+        owner: root
+        group: root
+        mode: 'u=rw,g=r,o=r'
 
-- name: Enable dnsmasq service
-  ansible.builtin.service:
-    name: dnsmasq
-    state: started
-    enabled: true
+- name: Install and configure dnsmasq
+  tags: dnsmasq
+  block:
+
+    - name: Set default interface dynamically if not defined
+      ansible.builtin.set_fact:
+        dnsmasq_interface: "{{ ansible_default_ipv4.interface }}"
+      when: dnsmasq_interface is not defined
+
+    - name: Install dnsmasq
+      ansible.builtin.apt:
+        name: dnsmasq
+        state: present
+        update_cache: true
+
+    - name: Ensure directory for dnsmasq configs exists
+      ansible.builtin.file:
+        path: /etc/dnsmasq.d
+        state: directory
+        owner: root
+        group: root
+        mode: 'u=rwx,g=rx,o=rx'
+
+    - name: Deploy dnsmasq.conf from template
+      ansible.builtin.template:
+        src: dnsmasq.conf.j2
+        dest: /etc/dnsmasq.d/dnsmasq.conf
+        owner: root
+        group: root
+        mode: 'u=rw,g=r,o=r'
+      notify: Restart dnsmasq
+
+    - name: Template hosts.dnsmasq.j2 to /etc/hosts.dnsmasq
+      ansible.builtin.template:
+        src: hosts.dnsmasq.j2
+        dest: /etc/hosts.dnsmasq
+        owner: root
+        group: root
+        mode: 'u=rw,g=r,o=r'
+      notify: Restart dnsmasq
+
+    - name: Provide custom systemd override for dnsmasq
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/dnsmasq.service.d/override.conf
+        content: |
+          [Service]
+          ExecStart=
+          ExecStart=/usr/sbin/dnsmasq -k --conf-dir=/etc/dnsmasq.d
+          PIDFile=
+          Type=simple
+        owner: root
+        group: root
+        mode: 'u=rw,g=r,o=r'
+
+    - name: Reload systemd, start and enable dnsmasq
+      ansible.builtin.systemd:
+        name: dnsmasq
+        state: started
+        enabled: true
+        daemon_reload: true
