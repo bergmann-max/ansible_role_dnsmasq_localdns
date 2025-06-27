@@ -36,4 +36,3 @@ dnsmasq_localdns_hosts:
   - "10.0.0.10 webserver.example.com frontend.example.com"
   - "10.0.0.11 dbserver.example.com"
   - "10.0.0.12 monitoring.example.com"
-

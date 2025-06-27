@@ -85,6 +85,14 @@
         mode: 'u=rw,g=r,o=r'
       notify: Restart dnsmasq
 
+    - name: Ensure systemd override directory for dnsmasq exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/dnsmasq.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: u=rwx,g=rx,o=rx
+
     - name: Provide custom systemd override for dnsmasq
       ansible.builtin.copy:
         dest: /etc/systemd/system/dnsmasq.service.d/override.conf
@@ -92,11 +100,19 @@
           [Service]
           ExecStart=
           ExecStart=/usr/sbin/dnsmasq -k --conf-dir=/etc/dnsmasq.d
+          ExecStartPre=
+          ExecStartPost=
           PIDFile=
           Type=simple
         owner: root
         group: root
         mode: 'u=rw,g=r,o=r'
+
+
+    - name: Remove resolvconf package (to avoid DNS configuration conflicts)
+      ansible.builtin.apt:
+        name: resolvconf
+        state: absent
 
     - name: Reload systemd, start and enable dnsmasq
       ansible.builtin.systemd:
